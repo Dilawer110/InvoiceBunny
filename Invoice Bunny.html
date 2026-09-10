@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Invoice — Snacks Distribution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F9FE;
+    --paper-deep:#E8F0FA;
+    --ink:#001840;
+    --ink-soft:#51628A;
+    --rule:#CFDCF0;
+    --bunny:#4868A8;
+    --navy:#1C3D7A;
+    --night:#001840;
+    --sky:#6B8FC4;
+    --ice:#E8F0FA;
+    --white:#FFFFFF;
+    --danger:#B23A2E;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(0,24,64,0.07), 0 8px 24px -12px rgba(0,24,64,0.22);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #EEF4FC 0%, transparent 60%),
+      var(--paper-deep);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:28px 16px 60px;
+  }
+  .sheet{
+    max-width:1180px;
+    margin:0 auto;
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  /* ---------- Header (light, ink-efficient, double-rule border) ---------- */
+  .band{
+    background:var(--paper);
+    color:var(--ink);
+    padding:20px 34px 16px;
+    border-bottom:3px double var(--navy);
+  }
+  .band-top{display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft); margin:0 0 4px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:27px;
+    margin:0;
+    letter-spacing:-0.01em;
+    color:var(--navy);
+  }
+  .band-meta{
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    line-height:1.7;
+  }
+  .band-meta input{
+    background:var(--white);
+    border:1px solid var(--rule);
+    color:var(--ink);
+    border-radius:6px;
+    padding:4px 8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    width:150px;
+  }
+  .band-meta input::placeholder{color:var(--ink-soft); opacity:.7;}
+  .band-meta input:focus{outline:2px solid var(--bunny); outline-offset:1px;}
+  .band-meta label{display:inline-block; width:104px; text-align:left; color:var(--ink-soft);}
+  .band-meta .row{display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-bottom:6px;}
+
+  /* ---------- Reusable section title (light-grey / bordered, low-ink) ---------- */
+  .section-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--navy);
+    border-bottom:1px solid var(--rule);
+    padding-bottom:6px;
+    margin:0 0 14px;
+  }
+  .section-title.rule-double{border-bottom:3px double var(--navy); padding-bottom:8px;}
+
+  /* ---------- Info grid ---------- */
+  .info-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0;
+    border-bottom:1px solid var(--rule);
+  }
+  .info-col{padding:22px 34px; }
+  .info-col:first-child{border-right:1px solid var(--rule);}
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft); margin-bottom:4px; font-weight:600;
+  }
+  .field input, .field select{
+    width:100%;
+    border:1px solid var(--rule);
+    background:var(--white);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--bunny); outline-offset:1px;}
+  .two-up{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+  /* ---------- Slab gauge (signature element) ---------- */
+  .gauge-wrap{padding:16px 34px 4px;}
+  .gauge-card{
+    background:var(--ice);
+    border:1px solid #C7D8EF;
+    border-radius:9px;
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .gauge-label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--bunny); font-weight:700; white-space:nowrap;}
+  .gauge-track{flex:1; min-width:180px; height:8px; background:#D6E2F4; border-radius:6px; overflow:hidden; position:relative;}
+  .gauge-fill{height:100%; background:linear-gradient(90deg, var(--bunny), var(--sky)); border-radius:6px; transition:width .35s ease;}
+  .gauge-note{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink); white-space:nowrap;}
+
+  /* ---------- Table ---------- */
+  .table-wrap{padding:24px 34px 4px;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-soft);
+    border-bottom:3px double var(--navy);
+    padding:0 8px 8px;
+    font-weight:700;
+  }
+  tbody td{
+    padding:7px 8px;
+    border-bottom:1px solid var(--rule);
+    vertical-align:top;
+    font-size:13.5px;
+  }
+  tbody tr:hover{background:rgba(72,104,168,0.05);}
+  td.num, th.num{text-align:right; font-family:'IBM Plex Mono', monospace;}
+  .prod-cell{position:relative; min-width:230px;}
+  .prod-search{
+    width:100%; min-width:220px; border:1px solid var(--rule); border-radius:6px;
+    padding:7px 9px; font-size:13px; font-family:'Inter',sans-serif; background:var(--white); color:var(--ink);
+  }
+  .prod-search:focus{outline:2px solid var(--bunny); outline-offset:1px;}
+  .prod-dropdown{
+    position:absolute; top:calc(100% + 4px); left:0; right:-140px; background:var(--white);
+    border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow);
+    max-height:270px; overflow-y:auto; z-index:30;
+  }
+  .dd-item{padding:8px 10px; cursor:pointer; display:flex; flex-direction:column; gap:1px; border-bottom:1px solid var(--paper-deep);}
+  .dd-item:last-child{border-bottom:none;}
+  .dd-item:hover, .dd-item.dd-active{background:var(--ice);}
+  .dd-sf{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--bunny); font-weight:700;}
+  .dd-desc{font-size:13px; color:var(--ink);}
+  .dd-cat{font-size:11px; color:var(--ink-soft);}
+  .dd-empty{padding:10px; font-size:12.5px; color:var(--ink-soft); text-align:center;}
+
+  .qty-cell{min-width:120px;}
+  .qty-wrap{display:flex; flex-direction:column; align-items:flex-end; gap:5px;}
+  .qty-input{
+    width:90px; text-align:right; border:1px solid var(--rule); border-radius:6px; padding:6px 8px;
+    font-family:'IBM Plex Mono', monospace; font-size:13px;
+  }
+  .rate-input{
+    width:82px; text-align:right; border:1px solid var(--rule); border-radius:6px; padding:6px 8px;
+    font-family:'IBM Plex Mono', monospace; font-size:13px;
+  }
+  .unit-toggle{display:inline-flex; border:1px solid var(--rule); border-radius:6px; overflow:hidden;}
+  .ut-btn{
+    border:none; background:var(--white); color:var(--ink-soft); font-size:10.5px; padding:3px 9px;
+    cursor:pointer; font-family:'Inter',sans-serif; font-weight:600;
+  }
+  .ut-btn:not(:last-child){border-right:1px solid var(--rule);}
+  .ut-btn.active{background:var(--bunny); color:#fff;}
+  .pack-hint{font-size:10px; color:var(--ink-soft); text-align:right; margin-top:2px;}
+  .units-sub{font-size:10.5px; color:var(--ink-soft); text-align:right; margin-top:2px;}
+
+  .prod-name{color:var(--ink-soft); font-size:12.5px; padding-top:8px;}
+  .rm-btn{
+    background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px; line-height:1;
+    padding:4px 6px; border-radius:5px; margin-top:4px;
+  }
+  .rm-btn:hover{background:rgba(178,58,46,0.12);}
+  .add-row-btn{
+    margin:14px 0 4px;
+    background:var(--white);
+    border:1.5px dashed var(--bunny);
+    color:var(--navy);
+    font-weight:600;
+    font-size:13px;
+    padding:9px 16px;
+    border-radius:7px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .add-row-btn:hover{background:var(--ice);}
+
+  /* ---------- Summary ---------- */
+  .bottom{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:24px;
+    padding:20px 34px 30px;
+  }
+  .notes{
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-left:3px solid var(--sky);
+    padding:2px 0 2px 14px;
+  }
+  .summary{
+    background:var(--white);
+    border:1px solid var(--rule);
+    border-radius:9px;
+    padding:16px 20px;
+  }
+  .srow{display:flex; justify-content:space-between; font-size:13.5px; padding:6px 0; }
+  .srow .v{font-family:'IBM Plex Mono', monospace;}
+  .srow.discount .v{color:var(--bunny);}
+  .srow.divider{border-top:1px solid var(--rule); margin-top:4px; padding-top:10px;}
+  .srow.grand{font-size:17px; font-weight:700; padding-top:12px;}
+  .srow.grand .v{color:var(--navy);}
+  .sub-line{font-size:11px; color:var(--ink-soft); margin-top:-2px; padding-bottom:2px;}
+
+  .toolbar{display:flex; gap:10px; justify-content:flex-end; padding:0 34px 24px;}
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+    padding:10px 18px; border-radius:7px; cursor:pointer; border:1px solid var(--rule);
+    background:var(--white); color:var(--ink);
+  }
+  .btn.primary{background:var(--bunny); border-color:var(--bunny); color:#fff;}
+  .btn.primary:hover{background:var(--navy);}
+  .btn:hover{background:var(--paper-deep);}
+
+  /* =====================================================================
+     PRINT / PDF STYLESHEET
+     Screen UI stays exactly as designed above. Everything below only
+     applies inside @media print and never touches the on-screen layout.
+     ===================================================================== */
+  @page{
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+  @media print{
+    *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    html, body{
+      background:#fff !important;
+      margin:0 !important;
+      padding:0 !important;
+      font-size:12px;
+    }
+
+    /* Invoice sheet fills the printable page, no card chrome */
+    .sheet{
+      box-shadow:none !important;
+      border:none !important;
+      border-radius:0 !important;
+      max-width:100% !important;
+      width:100% !important;
+      margin:0 !important;
+    }
+
+    /* ---- Hide every screen-only / interactive control ---- */
+    .toolbar,
+    .add-row-btn,
+    .rm-btn,
+    .prod-dropdown,
+    .gauge-wrap{
+      display:none !important;
+    }
+
+    /* ---- Header band: keep branding, tighten vertical space ---- */
+    .band{ padding:12px 20px 10px !important; }
+    .band::after{ display:none !important; }
+    .eyebrow{ font-size:9px; }
+    h1{ font-size:23px; }
+    .band-meta{ font-size:10px; line-height:1.5; }
+    .band-meta .row{ margin-bottom:3px; }
+    .band-meta input{
+      background:transparent !important;
+      border:none !important;
+      color:inherit !important;
+      padding:0 !important;
+      width:auto !important;
+      text-align:right;
+    }
+
+    /* ---- Customer / channel info: inputs & selects render as plain text ---- */
+    .info-col{ padding:8px 20px !important; }
+    .field{ margin-bottom:5px; }
+    .field label{ font-size:8.5px; margin-bottom:1px; }
+    .field input, .field select{
+      border:none !important;
+      background:transparent !important;
+      padding:0 !important;
+      font-size:11.5px;
+      color:var(--ink) !important;
+      -webkit-appearance:none !important;
+      -moz-appearance:none !important;
+      appearance:none !important;
+    }
+    .two-up{ gap:8px; }
+
+    /* ---- Line items table ---- */
+    .table-wrap{ padding:8px 20px 2px !important; }
+    table{ font-size:10.5px; width:100%; }
+    thead th{ padding:0 6px 4px !important; border-bottom:1.5px solid var(--night) !important; }
+    tbody td{ padding:3px 6px !important; }
+    thead{ display:table-header-group; }
+    tr{ page-break-inside: avoid; break-inside: avoid; }
+
+    .prod-search{
+      border:none !important;
+      background:transparent !important;
+      padding:0 !important;
+      font-size:10.5px;
+      pointer-events:none;
+      -webkit-appearance:none !important;
+    }
+    .pack-hint{ font-size:8px; }
+    .units-sub{ font-size:8px; }
+
+    .qty-wrap{ gap:2px; }
+    .qty-input, .rate-input{
+      border:none !important;
+      background:transparent !important;
+      padding:0 !important;
+      width:auto !important;
+      font-size:10.5px;
+    }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type=number]{ -moz-appearance:textfield; }
+
+    /* Unit toggle collapses to a plain label showing only the active unit */
+    .unit-toggle{ border:none !important; }
+    .ut-btn{ display:none !important; }
+    .ut-btn.active{
+      display:inline-block !important;
+      background:none !important;
+      color:var(--ink-soft) !important;
+      border:none !important;
+      padding:0 !important;
+      font-size:9.5px;
+      font-weight:600;
+    }
+
+    /* ---- Totals / summary ---- */
+    .bottom{ padding:8px 20px 12px !important; gap:16px; page-break-inside: avoid; break-inside: avoid; }
+    .notes{ font-size:9px; line-height:1.5; }
+    .summary{ padding:8px 14px !important; border:1px solid var(--rule) !important; page-break-inside: avoid; }
+    .srow{ padding:3px 0 !important; font-size:10.5px; }
+    .srow.grand{ font-size:13px; padding-top:7px !important; }
+
+    /* Avoid orphaned section breaks */
+    .info-grid, .band{ page-break-inside: avoid; break-inside: avoid; }
+
+    select::-ms-expand{ display:none; }
+  }
+  @media (max-width: 760px){
+    .info-grid{grid-template-columns:1fr;}
+    .info-col:first-child{border-right:none; border-bottom:1px solid var(--rule);}
+    .bottom{grid-template-columns:1fr;}
+    .band-top{flex-direction:column; align-items:flex-start;}
+    .band-meta{text-align:left;}
+    .band-meta .row{justify-content:flex-start;}
+    .prod-dropdown{right:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <!-- HEADER -->
+  <div class="band">
+    <div class="band-top">
+      <div>
+        <p class="eyebrow">Distributor / Trade Invoice</p>
+        <h1>Customer Invoice</h1>
+      </div>
+      <div class="band-meta">
+        <div class="row"><label>Invoice #</label><input id="invNo" placeholder="INV-0001"></div>
+        <div class="row"><label>Date</label><input id="invDate" type="date"></div>
+        <div class="row"><label>Order Booker</label><input id="orderBooker" placeholder="Name"></div>
+        <div class="row"><label>Salesman</label><input id="salesman" placeholder="Name"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER + CHANNEL INFO -->
+  <div class="info-grid">
+    <div class="info-col">
+      <div class="field"><label>Customer ID</label><input id="custId" placeholder="e.g. C-1042"></div>
+      <div class="field"><label>Customer Name</label><input id="custName" placeholder="Shop / Outlet name"></div>
+      <div class="two-up">
+        <div class="field">
+          <label>Channel</label>
+          <select id="channel">
+            <option value="GT">GT — Retail</option>
+            <option value="MT">MT / LMT</option>
+            <option value="WS">WS — Wholesale</option>
+            <option value="INST">Institution</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Area / Town</label>
+          <input id="area" placeholder="e.g. Model Town">
+        </div>
+      </div>
+    </div>
+    <div class="info-col">
+      <div class="field">
+        <label>Town Tier (for slab discount)</label>
+        <select id="tier">
+          <option value="Tier1">Tier 1 Town</option>
+          <option value="Tier2">Tier 2 Town</option>
+        </select>
+      </div>
+      <div class="field"><label>Remarks</label><input id="remarks" placeholder="Optional note for this invoice"></div>
+    </div>
+  </div>
+
+  <!-- SLAB GAUGE -->
+  <div class="gauge-wrap">
+    <div class="gauge-card">
+      <span class="gauge-label">Slab progress</span>
+      <div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
+      <span class="gauge-note" id="gaugeNote">Add line items to see slab standing</span>
+    </div>
+  </div>
+
+  <!-- LINE ITEMS -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product (search by SF code, BMS code or name)</th>
+          <th class="num" style="width:120px;">Quantity</th>
+          <th class="num" style="width:90px;">Rate / Unit</th>
+          <th class="num" style="width:100px;">Total Rate</th>
+          <th class="num" style="width:95px;">Discount</th>
+          <th style="width:26px;"></th>
+        </tr>
+      </thead>
+      <tbody id="lineBody"></tbody>
+    </table>
+    <button class="add-row-btn" id="addRowBtn">+ Add product line</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="bottom">
+    <div class="notes" id="notesBox">
+      Trade discount is applied per product per the Aug 2026 Trade Offer, based on the channel selected above.
+      Slab discount is applied once on the invoice's total gross amount, per the Tier 1 / Tier 2 Town discount
+      slabs for Snacks. Discounts to trade are extended strictly per these slabs on a non‑claimable basis and
+      are subject to quarterly review by mutual consent of Company and Distributor.
+    </div>
+    <div class="summary">
+      <div class="srow"><span>Subtotal (Gross Amount)</span><span class="v" id="sumSubtotal">Rs. 0</span></div>
+      <div class="srow discount"><span>Trade Discount (offer)</span><span class="v" id="sumTradeDisc">Rs. 0</span></div>
+      <div class="srow discount">
+        <span id="slabLabel">Slab Discount (0.0%)</span><span class="v" id="sumSlabDisc">Rs. 0</span>
+      </div>
+      <div class="srow grand divider"><span>Grand Total Discount</span><span class="v" id="sumGrandDisc">Rs. 0</span></div>
+      <div class="srow grand"><span>Net Payable</span><span class="v" id="sumNet">Rs. 0</span></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" id="resetBtn">Reset</button>
+    <button class="btn primary" id="printBtn">🖨️ Print Invoice / Save as PDF</button>
+  </div>
+
+</div>
+
+<script>
+/* ======================= DATA ======================= */
+// [bms, sf, description, category, subcategory, gm, pcsPerCtn, tradeUnitPrice, gt%, mt%, ws%]
+const PRODUCTS = [
+["K26","SKU00003","Munchy Salted 10gm","Munchy","Munchy-10 Gm",10,48,18,10.0,0.0,15.0],
+["K27","SKU00005","Munchy Vegetable 10gm","Munchy","Munchy-10 Gm",10,48,18,10.0,0.0,15.0],
+["K37","SKU00004","Munchy Salted 15gm","Munchy","Munchy-15 Gm",15,36,27,2.5,2.5,0.0],
+["K38","SKU00006","Munchy Vegetable 15gm","Munchy","Munchy-15 Gm",15,36,27,2.5,2.5,0.0],
+["K82","SKU00056","Munchy Salted 25gm","Munchy","Munchy-25 Gm",25,24,45,2.5,2.5,0.0],
+["K83","SKU00069","Munchy Vegetable 25gm","Munchy","Munchy-25 Gm",25,24,45,2.5,2.5,0.0],
+["K35","SKU00034","Salted Peanut 16gm","Peanut","Salted Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
+["K36","SKU00031","Peanut Unsalted 16gm","Peanut","Un Salted Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
+["K86","SKU00065","Masala Peanut 16gm","Peanut","Masala Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
+["K44","SKU00035","Salted Peanut 25gm","Peanut","Salted Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
+["K45","SKU00032","Peanut Unsalted 25gm","Peanut","Un Salted Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
+["K87","SKU00066","Masala Peanut 25gm","Peanut","Masala Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
+["K46","SKU00036","Salted Peanut 40gm","Peanut","Salted Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
+["K47","SKU00033","Peanut Unsalted 40gm","Peanut","Un Salted Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
+["K88","SKU00067","Masala Peanut 40gm","Peanut","Masala Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
+["K70","SKU00037","Daal Sev Box 192gm","Nimko","Daal Sev-192 Gm",192,12,216,9.5,0.0,0.0],
+["K79","SKU00038","P/Stick Chat Pata Box 192gm","Potato Sticks","Potato Sticks-192 Gm",192,12,216,9.5,0.0,0.0],
+["K71","SKU00068","Spicy Mix Nimko Box 192gm","Nimko","Spicy Mix-192 Gm",192,12,216,9.5,0.0,0.0],
+["K72","SKU00039","Nimboo Daal Box 192gm","Nimko","Nimbo Daal-192 Gm",192,12,216,9.5,0.0,0.0],
+["K73","SKU00040","Nimko Mix Hot Spicy Box 192gm","Nimko","Hot & Spicy-192 Gm",192,12,216,9.5,0.0,0.0],
+["A49","SKU00041","Nimko Mix Lemon Chilli Box 192gm","Nimko","Mix Lemon Chilli-192 Gm",192,12,216,9.5,0.0,0.0],
+["K84","SKU00042","Daal Moung Box 216gm","Nimko","Daal Moung-216 Gm",216,12,324,9.5,0.0,0.0],
+["K74","SKU00064","Daal Sev Strip 16gm","Nimko","Daal Sev-16 Gm",16,72,18,8.0,0.0,0.0],
+["K80","SKU00058","P/Stick Chatpata Strip 16gm","Potato Sticks","Potato Sticks-16 Gm",16,72,18,8.0,0.0,0.0],
+["K75","SKU00059","Spicy Mix Strip 16gm","Nimko","Spicy Mix-16 Gm",16,72,18,8.0,0.0,0.0],
+["K76","SKU00060","Nimboo Daal Strip 16gm","Nimko","Nimbo Daal-16 Gm",16,72,18,8.0,0.0,0.0],
+["K81","SKU00061","NM Hot Spicy Strip 16gm","Nimko","Hot & Spicy-16 Gm",16,72,18,8.0,0.0,0.0],
+["K77","SKU00062","NM Lemon Chilli Strip 16gm","Nimko","Mix Lemon Chilli-16 Gm",16,72,18,8.0,0.0,0.0],
+["K78","SKU00063","Daal Moung Strip 18gm","Nimko","Daal Moung-18 Gm",18,72,27,8.0,0.0,0.0],
+["K29","SKU00020","Nimboo Daal 24gm","Nimko","Nimbo Daal-24 Gm",24,48,27,3.0,3.0,0.0],
+["K30","SKU00050","NM Hot n Spicy 24gm","Nimko","Hot & Spicy-24 Gm",24,48,27,3.0,3.0,0.0],
+["K31","SKU00002","P/Stick S&P 24gm","Potato Sticks","Potato Sticks-24 Gm",24,48,27,3.0,3.0,0.0],
+["K32","SKU00051","Lemon Chilli Nimko 24gm","Nimko","Mix Lemon Chilli-24 Gm",24,48,27,3.0,3.0,0.0],
+["K33","SKU00007","Spicy Mix Nimko 24gm","Nimko","Spicy Mix-24 Gm",24,48,27,3.0,3.0,0.0],
+["K34","SKU00012","Daal Sev 24gm","Nimko","Daal Sev-24 Gm",24,48,27,3.0,3.0,0.0],
+["K42","SKU00025","S/Pepper Nimko 40gm","Nimko","Salt & Pepper-40 Gm",40,36,45,3.0,3.0,0.0],
+["K41","SKU00008","Chewra Nimko 30gm","Nimko","Chewra-30 Gm",30,36,45,3.0,3.0,0.0],
+["K39","SKU00010","Daal Moung 30gm","Nimko","Daal Moung-30 Gm",30,48,45,3.0,3.0,0.0],
+["K40","SKU00014","Khat Mitha 30gm","Nimko","Khat Mitha-30 Gm",30,36,45,3.0,3.0,0.0],
+["K43","SKU00013","Karachi Nimko 40gm","Nimko","Karachi-40 Gm",40,36,45,3.0,3.0,0.0],
+["K48","SKU00029","N/Shahi Mix 80gm","Nimko","Shahi Mix-80 Gm",80,36,225,2.5,3.0,0.0],
+["K52","SKU00016","N/Lahori Mix 80gm","Nimko","Lahori Mix-80 Gm",80,36,162,2.5,3.0,0.0],
+["K50","SKU00054","NM Salt n Pepper 80gm","Nimko","Salt & Pepper-80 Gm",80,36,108,2.5,3.0,0.0],
+["K51","SKU00028","N/Shahi Mix 180gm","Nimko","Shahi Mix-180 Gm",180,30,450,2.5,3.0,0.0],
+["K49","SKU00015","N/Lahori Mix 180gm","Nimko","Lahori Mix-180 Gm",180,30,360,2.5,3.0,0.0],
+["K53","SKU00052","Lemon n Chilli 180gm","Nimko","Lemon & Chilli-180 Gm",180,30,243,2.5,3.0,0.0],
+["K54","SKU00019","Masoor Masala 180gm","Nimko","Masoor-180 Gm",180,30,243,2.5,3.0,0.0],
+["K55","SKU00053","NM Salt n Pepper 180gm","Nimko","Salt & Pepper-180 Gm",180,30,243,2.5,3.0,0.0]
+];
+const PROD_BY_SF = {};
+PRODUCTS.forEach(p => PROD_BY_SF[p[1]] = {
+  bms:p[0], sf:p[1], desc:p[2], cat:p[3], sub:p[4], gm:p[5], pcs:p[6], rate:p[7],
+  GT:p[8], MT:p[9], WS:p[10]
+});
+
+// Discount slabs — Category: Snacks
+const SLABS = {
+  Tier1: {
+    GT:   [{min:1000, max:1999, pct:2.0}, {min:2000, max:Infinity, pct:3.0}],
+    MT:   [{min:2000, max:Infinity, pct:3.0}],
+    WS:   [{min:2000, max:3499, pct:3.0}, {min:3500, max:Infinity, pct:4.0}],
+    INST: [{min:2000, max:Infinity, pct:5.0}]
+  },
+  Tier2: {
+    GT:   [{min:1000, max:1999, pct:1.5}, {min:2000, max:Infinity, pct:2.5}],
+    MT:   [{min:2000, max:Infinity, pct:2.0}],
+    WS:   [{min:2000, max:3499, pct:2.5}, {min:3500, max:Infinity, pct:3.5}],
+    INST: [{min:2000, max:Infinity, pct:4.0}]
+  }
+};
+const CHANNEL_LABEL = {GT:"Retail (GT)", MT:"LMT", WS:"Wholesale", INST:"Institution"};
+
+/* ======================= STATE ======================= */
+let lines = []; // {id, sf, qty, rate, unitMode:'units'|'ctn'}
+let seq = 0;
+
+function fmt(n){
+  return "Rs. " + (Math.round(n*100)/100).toLocaleString('en-PK', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function escAttr(s){
+  return String(s).replace(/'/g, "&#39;").replace(/"/g,"&quot;");
+}
+
+function addLine(){
+  const id = "row"+(seq++);
+  lines.push({id, sf:"", qty:0, rate:0, unitMode:"units"});
+  renderLines();
+}
+
+function removeLine(id){
+  lines = lines.filter(l => l.id !== id);
+  renderLines();
+  calcAll();
+}
+
+/* ---------- Searchable product combobox ---------- */
+function productMatches(term){
+  const t = term.trim().toLowerCase();
+  if(!t) return PRODUCTS.slice(0, 8);
+  return PRODUCTS.filter(p =>
+    p[1].toLowerCase().includes(t) ||   // SF code
+    p[0].toLowerCase().includes(t) ||   // BMS code
+    p[2].toLowerCase().includes(t) ||   // description
+    p[3].toLowerCase().includes(t) ||   // category
+    p[4].toLowerCase().includes(t)      // sub category
+  ).slice(0, 8);
+}
+
+function renderDropdown(id, term){
+  const dd = document.getElementById('dd-'+id);
+  if(!dd) return;
+  const matches = productMatches(term);
+  if(matches.length === 0){
+    dd.innerHTML = '<div class="dd-empty">No matching products</div>';
+  } else {
+    dd.innerHTML = matches.map(p => `
+      <div class="dd-item" onmousedown="selectProduct('${id}','${p[1]}')">
+        <span class="dd-sf">${p[1]} · ${p[0]}</span>
+        <span class="dd-desc">${p[2]}</span>
+        <span class="dd-cat">${p[3]} — ${p[4]}</span>
+      </div>`).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function onProductFocus(id){
+  const input = document.getElementById('search-'+id);
+  renderDropdown(id, input && input.dataset.sf ? '' : (input ? input.value : ''));
+}
+function onProductSearch(id, val){
+  renderDropdown(id, val);
+}
+function onProductBlur(id){
+  setTimeout(()=>{
+    const dd = document.getElementById('dd-'+id);
+    if(dd) dd.style.display = 'none';
+    // If nothing valid was selected, restore the last valid selection text
+    const line = lines.find(l=>l.id===id);
+    const input = document.getElementById('search-'+id);
+    if(input){
+      const prod = line ? PROD_BY_SF[line.sf] : null;
+      input.value = prod ? `${prod.sf} — ${prod.desc}` : '';
+    }
+  }, 150);
+}
+function selectProduct(id, sf){
+  const line = lines.find(l=>l.id===id);
+  const prod = PROD_BY_SF[sf];
+  if(!line || !prod) return;
+  line.sf = sf;
+  line.rate = prod.rate;
+  const dd = document.getElementById('dd-'+id);
+  if(dd) dd.style.display = 'none';
+  renderLines();
+  calcAll();
+}
+
+/* ---------- Qty / rate / unit-mode handlers ---------- */
+function onQtyChange(id, val){
+  const line = lines.find(l=>l.id===id);
+  line.qty = parseFloat(val)||0;
+  calcAll();
+}
+function onRateChange(id, val){
+  const line = lines.find(l=>l.id===id);
+  line.rate = parseFloat(val)||0;
+  calcAll();
+}
+function setUnitMode(id, mode){
+  const line = lines.find(l=>l.id===id);
+  if(!line || line.unitMode === mode) return;
+  line.unitMode = mode;
+  renderLines();
+  calcAll();
+}
+
+function lineUnits(line, prod){
+  if(!prod) return line.qty || 0;
+  return line.unitMode === 'ctn' ? (line.qty||0) * prod.pcs : (line.qty||0);
+}
+
+/* ---------- Rendering ---------- */
+function renderLines(){
+  const body = document.getElementById('lineBody');
+  body.innerHTML = lines.map(l => {
+    const prod = PROD_BY_SF[l.sf];
+    const searchVal = prod ? `${prod.sf} — ${prod.desc}` : '';
+    return `
+    <tr data-id="${l.id}">
+      <td class="prod-cell">
+        <input type="text" id="search-${l.id}" class="prod-search" autocomplete="off"
+          placeholder="Type SF code, BMS code or name…" value="${escAttr(searchVal)}"
+          oninput="onProductSearch('${l.id}', this.value)"
+          onfocus="onProductFocus('${l.id}')"
+          onblur="onProductBlur('${l.id}')">
+        <div class="prod-dropdown" id="dd-${l.id}" style="display:none;"></div>
+      </td>
+      <td class="num qty-cell">
+        <div class="qty-wrap">
+          <input type="number" min="0" class="qty-input" value="${l.qty||''}" placeholder="0"
+            oninput="onQtyChange('${l.id}', this.value)">
+          <div class="unit-toggle">
+            <button type="button" class="ut-btn ${l.unitMode==='units'?'active':''}" onclick="setUnitMode('${l.id}','units')">Units</button>
+            <button type="button" class="ut-btn ${l.unitMode==='ctn'?'active':''}" onclick="setUnitMode('${l.id}','ctn')">Ctn</button>
+          </div>
+        </div>
+        ${prod ? `<div class="pack-hint">${prod.pcs} units / ctn</div>` : ''}
+      </td>
+      <td class="num"><input type="number" min="0" step="0.01" class="rate-input" value="${prod? l.rate : ''}"
+            oninput="onRateChange('${l.id}', this.value)"></td>
+      <td class="num" id="tot-${l.id}">Rs. 0</td>
+      <td class="num" id="disc-${l.id}">Rs. 0</td>
+      <td><button class="rm-btn" title="Remove line" onclick="removeLine('${l.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  if(lines.length===0){
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--ink-soft); padding:22px 0;">No products added yet — click “Add product line” below.</td></tr>`;
+  }
+}
+
+function getChannelTradeKey(channel){
+  // Trade offer table only has GT / MT / WS columns; Institution has no listed trade offer.
+  return (channel==='INST') ? null : channel;
+}
+
+function getSlab(channel, tier, gross){
+  const arr = SLABS[tier][channel];
+  let current = null, next = null;
+  for(const s of arr){ if(gross >= s.min && gross <= s.max) current = s; }
+  for(const s of arr){ if(gross < s.min){ next = s; break; } }
+  return {current, next, arr};
+}
+
+function calcAll(){
+  const channel = document.getElementById('channel').value;
+  const tier = document.getElementById('tier').value;
+  const tradeKey = getChannelTradeKey(channel);
+
+  let subtotal = 0, tradeDiscTotal = 0;
+
+  lines.forEach(l=>{
+    const prod = PROD_BY_SF[l.sf];
+    const units = lineUnits(l, prod);
+    const total = units * (l.rate||0);
+    let discPct = 0;
+    if(prod && tradeKey){ discPct = prod[tradeKey] || 0; }
+    const discVal = total * discPct/100;
+    subtotal += total;
+    tradeDiscTotal += discVal;
+    const totCell = document.getElementById('tot-'+l.id);
+    const discCell = document.getElementById('disc-'+l.id);
+    if(totCell){
+      totCell.innerHTML = fmt(total) + (l.unitMode==='ctn' && prod ? `<div class="units-sub">${units} units</div>` : '');
+    }
+    if(discCell) discCell.textContent = discPct>0 ? `${fmt(discVal)} (${discPct.toFixed(1)}%)` : fmt(0);
+  });
+
+  const slabInfo = getSlab(channel, tier, subtotal);
+  const slabPct = slabInfo.current ? slabInfo.current.pct : 0;
+  const slabVal = subtotal * slabPct/100;
+  const grandDisc = tradeDiscTotal + slabVal;
+  const net = subtotal - grandDisc;
+
+  document.getElementById('sumSubtotal').textContent = fmt(subtotal);
+  document.getElementById('sumTradeDisc').textContent = fmt(tradeDiscTotal);
+  document.getElementById('slabLabel').textContent = `Slab Discount — ${CHANNEL_LABEL[channel]} (${slabPct.toFixed(1)}%)`;
+  document.getElementById('sumSlabDisc').textContent = fmt(slabVal);
+  document.getElementById('sumGrandDisc').textContent = fmt(grandDisc);
+  document.getElementById('sumNet').textContent = fmt(net);
+
+  // Gauge
+  const fill = document.getElementById('gaugeFill');
+  const note = document.getElementById('gaugeNote');
+  if(subtotal<=0){
+    fill.style.width='0%';
+    note.textContent = 'Add line items to see slab standing';
+  } else if(slabInfo.next){
+    const lowerBound = slabInfo.current ? slabInfo.current.min : 0;
+    const span = slabInfo.next.min - lowerBound;
+    const progressed = subtotal - lowerBound;
+    const pct = Math.max(4, Math.min(100, (progressed/span)*100));
+    fill.style.width = pct.toFixed(0)+'%';
+    const remaining = slabInfo.next.min - subtotal;
+    note.textContent = `Rs. ${remaining.toLocaleString('en-PK',{maximumFractionDigits:0})} more unlocks ${slabInfo.next.pct.toFixed(1)}% slab`;
+  } else {
+    fill.style.width='100%';
+    note.textContent = `Top slab reached — ${slabPct.toFixed(1)}% applied`;
+  }
+}
+
+document.getElementById('channel').addEventListener('change', calcAll);
+document.getElementById('tier').addEventListener('change', calcAll);
+document.getElementById('addRowBtn').addEventListener('click', addLine);
+document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(confirm('Clear all line items and reset the form?')){
+    lines = [];
+    seq = 0;
+    ['custId','custName','area','remarks','invNo','orderBooker','salesman'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('invDate').value='';
+    document.getElementById('channel').value='GT';
+    document.getElementById('tier').value='Tier1';
+    renderLines();
+    addLine();
+    calcAll();
+  }
+});
+
+// init
+document.getElementById('invDate').valueAsDate = new Date();
+addLine();
+addLine();
+addLine();
+calcAll();
+</script>
+</body>
+</html>
