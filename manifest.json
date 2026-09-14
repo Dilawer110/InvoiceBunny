@@ -1,7 +1,7 @@
 {
   "name": "InvoiceBunny — Customer Invoice Tool",
   "short_name": "InvoiceBunny",
-  "description": "Snacks distribution customer invoice tool with product search, carton/unit toggle, trade discounts and slab discount calculation.",
+  "description": "Snacks distribution invoice tool with product search, carton/unit toggle, trade & slab discounts, GST, and Section 236H Advance Tax calculation.",
   "id": "/InvoiceBunny/",
   "start_url": "./index.html",
   "scope": "./",

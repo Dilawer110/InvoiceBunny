@@ -166,9 +166,9 @@
   }
   tbody tr:hover{background:rgba(72,104,168,0.05);}
   td.num, th.num{text-align:right; font-family:'IBM Plex Mono', monospace;}
-  .prod-cell{position:relative; min-width:230px;}
+  .prod-cell{position:relative; min-width:170px;}
   .prod-search{
-    width:100%; min-width:220px; border:1px solid var(--rule); border-radius:6px;
+    width:100%; min-width:160px; border:1px solid var(--rule); border-radius:6px;
     padding:7px 9px; font-size:13px; font-family:'Inter',sans-serif; background:var(--white); color:var(--ink);
   }
   .prod-search:focus{outline:2px solid var(--bunny); outline-offset:1px;}
@@ -449,6 +449,13 @@
           <option value="Tier2">Tier 2 Town</option>
         </select>
       </div>
+      <div class="field">
+        <label>Tax Status</label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:500; color:var(--ink); padding:8px 10px; border:1px solid var(--rule); border-radius:7px; background:var(--white);">
+          <input type="checkbox" id="strnRegistered" style="width:16px; height:16px; padding:0; margin:0; border-radius:4px; accent-color:var(--bunny); flex-shrink:0;" onchange="calcAll()">
+          STRN Registered (Sales Tax Registered Customer)
+        </label>
+      </div>
       <div class="field"><label>Remarks</label><input id="remarks" placeholder="Optional note for this invoice"></div>
     </div>
   </div>
@@ -467,11 +474,10 @@
     <table>
       <thead>
         <tr>
-          <th>Product (search by SF code, BMS code or name)</th>
-          <th class="num" style="width:120px;">Quantity</th>
-          <th class="num" style="width:90px;">Rate / Unit</th>
-          <th class="num" style="width:100px;">Total Rate</th>
-          <th class="num" style="width:95px;">Discount</th>
+          <th style="width:230px;">Product (search SF / BMS / name)</th>
+          <th class="num" style="width:130px;">Qty</th>
+          <th class="num" style="width:110px;" title="Landed cost per unit: Trade + Slab Discount, GST, and Advance Tax all applied">Unit Cost</th>
+          <th class="num" style="width:120px;" title="Landed cost per carton: Trade + Slab Discount, GST, and Advance Tax all applied">Carton Cost</th>
           <th style="width:26px;"></th>
         </tr>
       </thead>
@@ -489,13 +495,16 @@
       are subject to quarterly review by mutual consent of Company and Distributor.
     </div>
     <div class="summary">
-      <div class="srow"><span>Subtotal (Gross Amount)</span><span class="v" id="sumSubtotal">Rs. 0</span></div>
+      <div class="srow"><span>Subtotal (Gross Amount, Excl. GST)</span><span class="v" id="sumSubtotal">Rs. 0</span></div>
       <div class="srow discount"><span>Trade Discount (offer)</span><span class="v" id="sumTradeDisc">Rs. 0</span></div>
       <div class="srow discount">
         <span id="slabLabel">Slab Discount (0.0%)</span><span class="v" id="sumSlabDisc">Rs. 0</span>
       </div>
       <div class="srow grand divider"><span>Grand Total Discount</span><span class="v" id="sumGrandDisc">Rs. 0</span></div>
-      <div class="srow grand"><span>Net Payable</span><span class="v" id="sumNet">Rs. 0</span></div>
+      <div class="srow"><span>Net Amount (Excl. GST, after discounts)</span><span class="v" id="sumNet">Rs. 0</span></div>
+      <div class="srow"><span id="gstLabel">GST (22%)</span><span class="v" id="sumGst">Rs. 0</span></div>
+      <div class="srow"><span id="advLabel">Advance Tax — Sec. 236H (2.5%)</span><span class="v" id="sumAdvTax">Rs. 0</span></div>
+      <div class="srow grand divider"><span>Total Payable</span><span class="v" id="sumTotalPayable">Rs. 0</span></div>
     </div>
   </div>
 
@@ -510,54 +519,63 @@
 /* ======================= DATA ======================= */
 // [bms, sf, description, category, subcategory, gm, pcsPerCtn, tradeUnitPrice, gt%, mt%, ws%]
 const PRODUCTS = [
-["K26","SKU00003","Munchy Salted 10gm","Munchy","Munchy-10 Gm",10,48,18,10.0,0.0,15.0],
-["K27","SKU00005","Munchy Vegetable 10gm","Munchy","Munchy-10 Gm",10,48,18,10.0,0.0,15.0],
-["K37","SKU00004","Munchy Salted 15gm","Munchy","Munchy-15 Gm",15,36,27,2.5,2.5,0.0],
-["K38","SKU00006","Munchy Vegetable 15gm","Munchy","Munchy-15 Gm",15,36,27,2.5,2.5,0.0],
-["K82","SKU00056","Munchy Salted 25gm","Munchy","Munchy-25 Gm",25,24,45,2.5,2.5,0.0],
-["K83","SKU00069","Munchy Vegetable 25gm","Munchy","Munchy-25 Gm",25,24,45,2.5,2.5,0.0],
-["K35","SKU00034","Salted Peanut 16gm","Peanut","Salted Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
-["K36","SKU00031","Peanut Unsalted 16gm","Peanut","Un Salted Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
-["K86","SKU00065","Masala Peanut 16gm","Peanut","Masala Peanut-16 Gm",16,84,27,2.5,0.0,0.0],
-["K44","SKU00035","Salted Peanut 25gm","Peanut","Salted Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
-["K45","SKU00032","Peanut Unsalted 25gm","Peanut","Un Salted Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
-["K87","SKU00066","Masala Peanut 25gm","Peanut","Masala Peanut-25 Gm",25,48,45,2.5,2.5,0.0],
-["K46","SKU00036","Salted Peanut 40gm","Peanut","Salted Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
-["K47","SKU00033","Peanut Unsalted 40gm","Peanut","Un Salted Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
-["K88","SKU00067","Masala Peanut 40gm","Peanut","Masala Peanut-40 Gm",40,36,72,2.5,2.5,0.0],
-["K70","SKU00037","Daal Sev Box 192gm","Nimko","Daal Sev-192 Gm",192,12,216,9.5,0.0,0.0],
-["K79","SKU00038","P/Stick Chat Pata Box 192gm","Potato Sticks","Potato Sticks-192 Gm",192,12,216,9.5,0.0,0.0],
-["K71","SKU00068","Spicy Mix Nimko Box 192gm","Nimko","Spicy Mix-192 Gm",192,12,216,9.5,0.0,0.0],
-["K72","SKU00039","Nimboo Daal Box 192gm","Nimko","Nimbo Daal-192 Gm",192,12,216,9.5,0.0,0.0],
-["K73","SKU00040","Nimko Mix Hot Spicy Box 192gm","Nimko","Hot & Spicy-192 Gm",192,12,216,9.5,0.0,0.0],
-["A49","SKU00041","Nimko Mix Lemon Chilli Box 192gm","Nimko","Mix Lemon Chilli-192 Gm",192,12,216,9.5,0.0,0.0],
-["K84","SKU00042","Daal Moung Box 216gm","Nimko","Daal Moung-216 Gm",216,12,324,9.5,0.0,0.0],
-["K74","SKU00064","Daal Sev Strip 16gm","Nimko","Daal Sev-16 Gm",16,72,18,8.0,0.0,0.0],
-["K80","SKU00058","P/Stick Chatpata Strip 16gm","Potato Sticks","Potato Sticks-16 Gm",16,72,18,8.0,0.0,0.0],
-["K75","SKU00059","Spicy Mix Strip 16gm","Nimko","Spicy Mix-16 Gm",16,72,18,8.0,0.0,0.0],
-["K76","SKU00060","Nimboo Daal Strip 16gm","Nimko","Nimbo Daal-16 Gm",16,72,18,8.0,0.0,0.0],
-["K81","SKU00061","NM Hot Spicy Strip 16gm","Nimko","Hot & Spicy-16 Gm",16,72,18,8.0,0.0,0.0],
-["K77","SKU00062","NM Lemon Chilli Strip 16gm","Nimko","Mix Lemon Chilli-16 Gm",16,72,18,8.0,0.0,0.0],
-["K78","SKU00063","Daal Moung Strip 18gm","Nimko","Daal Moung-18 Gm",18,72,27,8.0,0.0,0.0],
-["K29","SKU00020","Nimboo Daal 24gm","Nimko","Nimbo Daal-24 Gm",24,48,27,3.0,3.0,0.0],
-["K30","SKU00050","NM Hot n Spicy 24gm","Nimko","Hot & Spicy-24 Gm",24,48,27,3.0,3.0,0.0],
-["K31","SKU00002","P/Stick S&P 24gm","Potato Sticks","Potato Sticks-24 Gm",24,48,27,3.0,3.0,0.0],
-["K32","SKU00051","Lemon Chilli Nimko 24gm","Nimko","Mix Lemon Chilli-24 Gm",24,48,27,3.0,3.0,0.0],
-["K33","SKU00007","Spicy Mix Nimko 24gm","Nimko","Spicy Mix-24 Gm",24,48,27,3.0,3.0,0.0],
-["K34","SKU00012","Daal Sev 24gm","Nimko","Daal Sev-24 Gm",24,48,27,3.0,3.0,0.0],
-["K42","SKU00025","S/Pepper Nimko 40gm","Nimko","Salt & Pepper-40 Gm",40,36,45,3.0,3.0,0.0],
-["K41","SKU00008","Chewra Nimko 30gm","Nimko","Chewra-30 Gm",30,36,45,3.0,3.0,0.0],
-["K39","SKU00010","Daal Moung 30gm","Nimko","Daal Moung-30 Gm",30,48,45,3.0,3.0,0.0],
-["K40","SKU00014","Khat Mitha 30gm","Nimko","Khat Mitha-30 Gm",30,36,45,3.0,3.0,0.0],
-["K43","SKU00013","Karachi Nimko 40gm","Nimko","Karachi-40 Gm",40,36,45,3.0,3.0,0.0],
-["K48","SKU00029","N/Shahi Mix 80gm","Nimko","Shahi Mix-80 Gm",80,36,225,2.5,3.0,0.0],
-["K52","SKU00016","N/Lahori Mix 80gm","Nimko","Lahori Mix-80 Gm",80,36,162,2.5,3.0,0.0],
-["K50","SKU00054","NM Salt n Pepper 80gm","Nimko","Salt & Pepper-80 Gm",80,36,108,2.5,3.0,0.0],
-["K51","SKU00028","N/Shahi Mix 180gm","Nimko","Shahi Mix-180 Gm",180,30,450,2.5,3.0,0.0],
-["K49","SKU00015","N/Lahori Mix 180gm","Nimko","Lahori Mix-180 Gm",180,30,360,2.5,3.0,0.0],
-["K53","SKU00052","Lemon n Chilli 180gm","Nimko","Lemon & Chilli-180 Gm",180,30,243,2.5,3.0,0.0],
-["K54","SKU00019","Masoor Masala 180gm","Nimko","Masoor-180 Gm",180,30,243,2.5,3.0,0.0],
-["K55","SKU00053","NM Salt n Pepper 180gm","Nimko","Salt & Pepper-180 Gm",180,30,243,2.5,3.0,0.0]
+["K26","SKU00003","Munchy Salted 10gm","Munchy","Munchy-10 Gm",10,48,14.75,10.0,0.0,15.0],
+["K27","SKU00005","Munchy Vegetable 10gm","Munchy","Munchy-10 Gm",10,48,14.75,10.0,0.0,15.0],
+["K37","SKU00004","Munchy Salted 15gm","Munchy","Munchy-15 Gm",15,36,22.13,2.5,2.5,0.0],
+["K38","SKU00006","Munchy Vegetable 15gm","Munchy","Munchy-15 Gm",15,36,22.13,2.5,2.5,0.0],
+["K82","SKU00056","Munchy Salted 25gm","Munchy","Munchy-25 Gm",25,24,36.89,2.5,2.5,0.0],
+["K83","SKU00069","Munchy Vegetable 25gm","Munchy","Munchy-25 Gm",25,24,36.89,2.5,2.5,0.0],
+["K35","SKU00034","Salted Peanut 16gm","Peanut","Salted Peanut-16 Gm",16,84,22.13,2.5,0.0,0.0],
+["K36","SKU00031","Peanut Unsalted 16gm","Peanut","Un Salted Peanut-16 Gm",16,84,22.13,2.5,0.0,0.0],
+["K86","SKU00065","Masala Peanut 16gm","Peanut","Masala Peanut-16 Gm",16,84,22.13,2.5,0.0,0.0],
+["K44","SKU00035","Salted Peanut 25gm","Peanut","Salted Peanut-25 Gm",25,48,36.89,2.5,2.5,0.0],
+["K45","SKU00032","Peanut Unsalted 25gm","Peanut","Un Salted Peanut-25 Gm",25,48,36.89,2.5,2.5,0.0],
+["K87","SKU00066","Masala Peanut 25gm","Peanut","Masala Peanut-25 Gm",25,48,36.89,2.5,2.5,0.0],
+["K46","SKU00036","Salted Peanut 40gm","Peanut","Salted Peanut-40 Gm",40,36,59.02,2.5,2.5,0.0],
+["K47","SKU00033","Peanut Unsalted 40gm","Peanut","Un Salted Peanut-40 Gm",40,36,59.02,2.5,2.5,0.0],
+["K88","SKU00067","Masala Peanut 40gm","Peanut","Masala Peanut-40 Gm",40,36,59.02,2.5,2.5,0.0],
+["K70","SKU00037","Daal Sev Box 192gm","Nimko","Daal Sev-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["K79","SKU00038","P/Stick Chat Pata Box 192gm","Potato Sticks","Potato Sticks-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["K71","SKU00068","Spicy Mix Nimko Box 192gm","Nimko","Spicy Mix-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["K72","SKU00039","Nimboo Daal Box 192gm","Nimko","Nimbo Daal-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["K73","SKU00040","Nimko Mix Hot Spicy Box 192gm","Nimko","Hot & Spicy-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["A49","SKU00041","Nimko Mix Lemon Chilli Box 192gm","Nimko","Mix Lemon Chilli-192 Gm",192,12,177.05,9.5,0.0,0.0],
+["K84","SKU00042","Daal Moung Box 216gm","Nimko","Daal Moung-216 Gm",216,12,265.57,9.5,0.0,0.0],
+["K74","SKU00064","Daal Sev Strip 16gm","Nimko","Daal Sev-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K80","SKU00058","P/Stick Chatpata Strip 16gm","Potato Sticks","Potato Sticks-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K75","SKU00059","Spicy Mix Strip 16gm","Nimko","Spicy Mix-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K76","SKU00060","Nimboo Daal Strip 16gm","Nimko","Nimbo Daal-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K81","SKU00061","NM Hot Spicy Strip 16gm","Nimko","Hot & Spicy-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K77","SKU00062","NM Lemon Chilli Strip 16gm","Nimko","Mix Lemon Chilli-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["K78","SKU00063","Daal Moung Strip 18gm","Nimko","Daal Moung-18 Gm",18,72,22.13,8.0,0.0,0.0],
+["K29","SKU00020","Nimboo Daal 24gm","Nimko","Nimbo Daal-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K30","SKU00050","NM Hot n Spicy 24gm","Nimko","Hot & Spicy-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K31","SKU00002","P/Stick S&P 24gm","Potato Sticks","Potato Sticks-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K32","SKU00051","Lemon Chilli Nimko 24gm","Nimko","Mix Lemon Chilli-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K33","SKU00007","Spicy Mix Nimko 24gm","Nimko","Spicy Mix-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K34","SKU00012","Daal Sev 24gm","Nimko","Daal Sev-24 Gm",24,48,22.13,3.0,3.0,0.0],
+["K42","SKU00025","S/Pepper Nimko 40gm","Nimko","Salt & Pepper-40 Gm",40,36,36.89,3.0,3.0,0.0],
+["K41","SKU00008","Chewra Nimko 30gm","Nimko","Chewra-30 Gm",30,36,36.89,3.0,3.0,0.0],
+["K39","SKU00010","Daal Moung 30gm","Nimko","Daal Moung-30 Gm",30,48,36.89,3.0,3.0,0.0],
+["K40","SKU00014","Khat Mitha 30gm","Nimko","Khat Mitha-30 Gm",30,36,36.89,3.0,3.0,0.0],
+["K43","SKU00013","Karachi Nimko 40gm","Nimko","Karachi-40 Gm",40,36,36.89,3.0,3.0,0.0],
+["K48","SKU00029","N/Shahi Mix 80gm","Nimko","Shahi Mix-80 Gm",80,36,184.43,2.5,3.0,0.0],
+["K52","SKU00016","N/Lahori Mix 80gm","Nimko","Lahori Mix-80 Gm",80,36,132.79,2.5,3.0,0.0],
+["K50","SKU00054","NM Salt n Pepper 80gm","Nimko","Salt & Pepper-80 Gm",80,36,88.52,2.5,3.0,0.0],
+["K51","SKU00028","N/Shahi Mix 180gm","Nimko","Shahi Mix-180 Gm",180,30,368.85,2.5,3.0,0.0],
+["K49","SKU00015","N/Lahori Mix 180gm","Nimko","Lahori Mix-180 Gm",180,30,295.08,2.5,3.0,0.0],
+["K53","SKU00052","Lemon n Chilli 180gm","Nimko","Lemon & Chilli-180 Gm",180,30,199.18,2.5,3.0,0.0],
+["K54","SKU00019","Masoor Masala 180gm","Nimko","Masoor-180 Gm",180,30,199.18,2.5,3.0,0.0],
+["K55","SKU00053","NM Salt n Pepper 180gm","Nimko","Salt & Pepper-180 Gm",180,30,199.18,2.5,3.0,0.0],
+["N/A","SKU00011","Daal Sev (Loose) 16gm","Nimko","Daal Sev-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00001","Potato Stick Chatpata (Loose) 16gm","Potato Sticks","Potato Sticks-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00030","Spicy Mix Nimko (Loose) 16gm","Nimko","Spicy Mix-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00021","Nimboo Daal (Loose) 16gm","Nimko","Nimbo Daal-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00023","Nimko Mix Hot & Spicy (Loose) 16gm","Nimko","Hot & Spicy-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00024","Nimko Mix Lemon & Chilli (Loose) 16gm","Nimko","Mix Lemon Chilli-16 Gm",16,72,14.75,8.0,0.0,0.0],
+["N/A","SKU00009","Daal Moung (Loose) 18gm","Nimko","Daal Moung-18 Gm",18,72,22.13,8.0,0.0,0.0],
+["N/A","N/A1","Munchy Plain 15gm","Munchy","Munchy-15 Gm",15,36,22.13,2.5,2.5,0.0],
+["N/A","N/A2","Munchy Plain 25gm","Munchy","Munchy-25 Gm",25,24,36.89,2.5,2.5,0.0]
 ];
 const PROD_BY_SF = {};
 PRODUCTS.forEach(p => PROD_BY_SF[p[1]] = {
@@ -674,11 +692,6 @@ function onQtyChange(id, val){
   line.qty = parseFloat(val)||0;
   calcAll();
 }
-function onRateChange(id, val){
-  const line = lines.find(l=>l.id===id);
-  line.rate = parseFloat(val)||0;
-  calcAll();
-}
 function setUnitMode(id, mode){
   const line = lines.find(l=>l.id===id);
   if(!line || line.unitMode === mode) return;
@@ -719,15 +732,13 @@ function renderLines(){
         </div>
         ${prod ? `<div class="pack-hint">${prod.pcs} units / ctn</div>` : ''}
       </td>
-      <td class="num"><input type="number" min="0" step="0.01" class="rate-input" value="${prod? l.rate : ''}"
-            oninput="onRateChange('${l.id}', this.value)"></td>
-      <td class="num" id="tot-${l.id}">Rs. 0</td>
-      <td class="num" id="disc-${l.id}">Rs. 0</td>
+      <td class="num" id="unitcost-${l.id}">Rs. 0</td>
+      <td class="num" id="ctncost-${l.id}">Rs. 0</td>
       <td><button class="rm-btn" title="Remove line" onclick="removeLine('${l.id}')">✕</button></td>
     </tr>`;
   }).join('');
   if(lines.length===0){
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--ink-soft); padding:22px 0;">No products added yet — click “Add product line” below.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--ink-soft); padding:22px 0;">No products added yet — click “Add product line” below.</td></tr>`;
   }
 }
 
@@ -748,6 +759,7 @@ function calcAll(){
   const channel = document.getElementById('channel').value;
   const tier = document.getElementById('tier').value;
   const tradeKey = getChannelTradeKey(channel);
+  const strnRegistered = document.getElementById('strnRegistered').checked;
 
   let subtotal = 0, tradeDiscTotal = 0;
 
@@ -760,12 +772,6 @@ function calcAll(){
     const discVal = total * discPct/100;
     subtotal += total;
     tradeDiscTotal += discVal;
-    const totCell = document.getElementById('tot-'+l.id);
-    const discCell = document.getElementById('disc-'+l.id);
-    if(totCell){
-      totCell.innerHTML = fmt(total) + (l.unitMode==='ctn' && prod ? `<div class="units-sub">${units} units</div>` : '');
-    }
-    if(discCell) discCell.textContent = discPct>0 ? `${fmt(discVal)} (${discPct.toFixed(1)}%)` : fmt(0);
   });
 
   const slabInfo = getSlab(channel, tier, subtotal);
@@ -774,12 +780,48 @@ function calcAll(){
   const grandDisc = tradeDiscTotal + slabVal;
   const net = subtotal - grandDisc;
 
+  const GST_PCT = strnRegistered ? 18 : 22;
+  const ADVANCE_TAX_PCT = strnRegistered ? 0.5 : 2.5;
+  const gstVal = net * GST_PCT/100;
+  const invoiceAmt = net + gstVal;                    // Net Amount Inclusive of GST
+  const advTax = invoiceAmt * ADVANCE_TAX_PCT/100;     // Advance Tax on the GST-inclusive amount
+  const totalPayable = invoiceAmt + advTax;
+
   document.getElementById('sumSubtotal').textContent = fmt(subtotal);
   document.getElementById('sumTradeDisc').textContent = fmt(tradeDiscTotal);
   document.getElementById('slabLabel').textContent = `Slab Discount — ${CHANNEL_LABEL[channel]} (${slabPct.toFixed(1)}%)`;
   document.getElementById('sumSlabDisc').textContent = fmt(slabVal);
   document.getElementById('sumGrandDisc').textContent = fmt(grandDisc);
   document.getElementById('sumNet').textContent = fmt(net);
+  document.getElementById('gstLabel').textContent = `GST ${strnRegistered ? '(STRN Registered — 18%)' : '(Unregistered — 22%)'}`;
+  document.getElementById('sumGst').textContent = fmt(gstVal);
+  document.getElementById('advLabel').textContent = `Advance Tax — Sec. 236H (${ADVANCE_TAX_PCT}%, on Amount Incl. GST)`;
+  document.getElementById('sumAdvTax').textContent = fmt(advTax);
+  document.getElementById('sumTotalPayable').textContent = fmt(totalPayable);
+
+  // ---- Per-line landed Unit Cost / Carton Cost (combines this product's Trade
+  // Discount % with the invoice-level Slab Discount %, then GST, then Advance
+  // Tax on the GST-inclusive amount — same method as the summary above) ----
+  lines.forEach(l=>{
+    const prod = PROD_BY_SF[l.sf];
+    const unitCostCell = document.getElementById('unitcost-'+l.id);
+    const ctnCostCell = document.getElementById('ctncost-'+l.id);
+    if(!prod){
+      if(unitCostCell) unitCostCell.textContent = fmt(0);
+      if(ctnCostCell) ctnCostCell.textContent = fmt(0);
+      return;
+    }
+    const tradePct = tradeKey ? (prod[tradeKey] || 0) : 0;
+    const combinedPct = tradePct + slabPct;
+    const netRatePerUnit = (l.rate||0) * (1 - combinedPct/100);
+    const gstPerUnit = netRatePerUnit * GST_PCT/100;
+    const invoiceAmtPerUnit = netRatePerUnit + gstPerUnit;
+    const advTaxPerUnit = invoiceAmtPerUnit * ADVANCE_TAX_PCT/100;
+    const unitCost = invoiceAmtPerUnit + advTaxPerUnit;
+    const ctnCost = unitCost * prod.pcs;
+    if(unitCostCell) unitCostCell.textContent = fmt(unitCost);
+    if(ctnCostCell) ctnCostCell.textContent = fmt(ctnCost);
+  });
 
   // Gauge
   const fill = document.getElementById('gaugeFill');
@@ -813,6 +855,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
     document.getElementById('invDate').value='';
     document.getElementById('channel').value='GT';
     document.getElementById('tier').value='Tier1';
+    document.getElementById('strnRegistered').checked=false;
     renderLines();
     addLine();
     calcAll();
