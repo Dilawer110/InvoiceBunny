@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Customer Invoice — Snacks Distribution</title>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#1C3D7A">
-<link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -149,6 +146,8 @@
 
   /* ---------- Table ---------- */
   .table-wrap{padding:24px 34px 4px;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .scroll-hint{display:none; font-size:11px; color:var(--ink-soft); margin:0 0 8px; font-family:'IBM Plex Mono', monospace;}
   table{width:100%; border-collapse:collapse;}
   thead th{
     text-align:left;
@@ -173,9 +172,9 @@
   }
   .prod-search:focus{outline:2px solid var(--bunny); outline-offset:1px;}
   .prod-dropdown{
-    position:absolute; top:calc(100% + 4px); left:0; right:-140px; background:var(--white);
+    position:fixed; background:var(--white);
     border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow);
-    max-height:270px; overflow-y:auto; z-index:30;
+    max-height:270px; overflow-y:auto; z-index:1000;
   }
   .dd-item{padding:8px 10px; cursor:pointer; display:flex; flex-direction:column; gap:1px; border-bottom:1px solid var(--paper-deep);}
   .dd-item:last-child{border-bottom:none;}
@@ -297,8 +296,13 @@
     .add-row-btn,
     .rm-btn,
     .prod-dropdown,
-    .gauge-wrap{
+    .gauge-wrap,
+    .scroll-hint{
       display:none !important;
+    }
+
+    .table-scroll{
+      overflow:visible !important;
     }
 
     /* ---- Header band: keep branding, tighten vertical space ---- */
@@ -396,7 +400,8 @@
     .band-top{flex-direction:column; align-items:flex-start;}
     .band-meta{text-align:left;}
     .band-meta .row{justify-content:flex-start;}
-    .prod-dropdown{right:0;}
+    .prod-dropdown{ /* positioned via JS now */ }
+    .scroll-hint{display:block;}
   }
 </style>
 </head>
@@ -471,6 +476,8 @@
 
   <!-- LINE ITEMS -->
   <div class="table-wrap">
+    <div class="scroll-hint">↔ Swipe to see all columns</div>
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -483,6 +490,7 @@
       </thead>
       <tbody id="lineBody"></tbody>
     </table>
+    </div>
     <button class="add-row-btn" id="addRowBtn">+ Add product line</button>
   </div>
 
@@ -637,6 +645,24 @@ function productMatches(term){
   ).slice(0, 8);
 }
 
+function positionDropdown(id){
+  const input = document.getElementById('search-'+id);
+  const dd = document.getElementById('dd-'+id);
+  if(!input || !dd) return;
+  const rect = input.getBoundingClientRect();
+  const width = Math.max(rect.width, 240);
+  dd.style.left = Math.min(rect.left, window.innerWidth - width - 8) + 'px';
+  dd.style.width = width + 'px';
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if(spaceBelow < 220 && rect.top > spaceBelow){
+    dd.style.top = 'auto';
+    dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+  } else {
+    dd.style.bottom = 'auto';
+    dd.style.top = (rect.bottom + 4) + 'px';
+  }
+}
+
 function renderDropdown(id, term){
   const dd = document.getElementById('dd-'+id);
   if(!dd) return;
@@ -651,6 +677,7 @@ function renderDropdown(id, term){
         <span class="dd-cat">${p[3]} — ${p[4]}</span>
       </div>`).join('');
   }
+  positionDropdown(id);
   dd.style.display = 'block';
 }
 
@@ -868,12 +895,6 @@ addLine();
 addLine();
 addLine();
 calcAll();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(console.error);
-  });
-}
 </script>
 </body>
 </html>
